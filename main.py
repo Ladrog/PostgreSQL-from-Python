@@ -82,11 +82,80 @@ def chang_data_client(conn, name_id=None, first_name=None, last_name=None, email
         print(f"Данные клиента с NameID: {name_id} были успешно обновлены.")
 
 
+def delete_phone_number(conn, name_id, phone):
+    with conn.cursor() as cur:
+        cur.execute("""
+            UPDATE phone SET PhoneNumber = NULL 
+             WHERE NameID = %s AND PhoneNumber = %s;
+            """, (name_id, phone))
+        conn.commit()
+
+        if cur.rowcount > 0:
+            print(f"Номер телефона {phone} для клиента с NameID {name_id} был удален.")
+        else:
+            print(f"Нет елиента с данным ID {name_id}.")
+
+
+def delete_client(conn, name_id):
+    with conn.cursor() as cur:
+        cur.execute("""
+            DELETE FROM phone 
+            WHERE NameID = %s;
+            """, name_id)
+        cur.execute("""
+            DELETE FROM name 
+            WHERE NameID = %s;
+            """, name_id)
+        conn.commit()
+
+        if cur.rowcount > 0:
+            print(f"Информация о клиенте с NameID {name_id}, была успешно удалена")
+        else:
+            print(f"Нет клиента с ID {name_id}.")
+
+
+def search_client(conn, first_name=None, last_name=None, email=None, phone=None):
+    query = ("""
+        SELECT name, phone.PhoneNumber
+        FROM name
+        JOIN phone ON name.NameID = phone.NameID
+        """)
+    condition = []
+    params = {}
+    if first_name:
+        condition.append("FirstName = %(first_name)s")
+        params['first_name'] = first_name
+    if last_name:
+        condition.append("LastName = %(last_name)s")
+        params['last_name'] = last_name
+    if email:
+        condition.append("email = %(email)s")
+        params['email'] = email
+    if phone:
+        condition.append("PhoneNumber = %(phone)s")
+        params['phone'] = phone
+    if condition:
+        query += " WHERE " + " AND ".join(condition)
+
+    with conn.cursor() as cur:
+        cur.execute(query, params)
+        results = cur.fetchall()
+
+        if results:
+            for row in results:
+                print(row)
+        else:
+            print("Клиента с такими данными не существует.")
+
+
 conn = psycopg2.connect(database="netology_db", user="postgres", password="123")
 create_db(conn)
-add_new_client(conn, first_name='Petr', last_name='Piаfрtt', email='аfоl@пytandex.ru', phone=980003995)
-add_new_phone_nuber(conn, 1, 234925034)
-chang_data_client(conn, 1, first_name='Grits', email='m_slfnsld@mail.ru')
-
+add_new_client(conn, first_name='Roma', last_name='Milton', email='аfоdfr@ytandex.ru', phone='980003995')
+add_new_client(conn, first_name='Artem', last_name='Rut', email='ssdf@yandex.ru', phone='9867765545')
+add_new_phone_nuber(conn, 1, '234925034')
+chang_data_client(conn, 1, first_name='Ivanov', email='m_slfnsld@mail.ru')
+delete_phone_number(conn, 1, '980003995')
+delete_client(conn, '1')
+search_client(conn, first_name='Artem')
 
 conn.close()
